@@ -1,0 +1,145 @@
+{{define "graph"}}{{template "head" .}}
+<div class="controls">
+  <select id="org"><option value="">all orgs</option></select>
+  <label><input type="checkbox" id="viol"> violations only</label>
+  <input id="q" type="search" placeholder="highlight components…" size="28">
+  <span class="count">drag to pan · wheel to zoom · click a node to isolate its edges · click empty space to reset</span>
+</div>
+<canvas id="cv"></canvas>
+<div id="panel"></div>
+<script>const DATA = {{.JSON}};</script>
+<script>
+(function(){
+  const esc = t => { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; };
+  const cv = document.getElementById('cv'), panel = document.getElementById('panel');
+  const ctx = cv.getContext('2d');
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const C = {
+    edge: dark ? 'rgba(148,163,184,.16)' : 'rgba(100,116,139,.18)',
+    conf: dark ? 'rgba(74,222,128,.25)' : 'rgba(19,122,68,.22)',
+    bad:  dark ? 'rgba(248,113,113,.55)' : 'rgba(185,28,28,.5)',
+    newbad: '#e11d48',
+    node: dark ? '#7ea6ff' : '#2456d6',
+    foundation: dark ? '#4ade80' : '#137a44',
+    dim: dark ? 'rgba(148,163,184,.25)' : 'rgba(148,163,184,.45)',
+    label: dark ? '#e5e9f0' : '#1a1a2e',
+    org: dark ? '#94a3b8' : '#6b7280',
+  };
+
+  // Deterministic layout: one column band per org (largest first), nodes
+  // within an org in a grid sorted by degree. No physics: readable,
+  // instant, and stable across regenerations of the same data.
+  const nodes = DATA.nodes, edges = DATA.edges;
+  const byId = {}; nodes.forEach(n => byId[n.id] = n);
+  const deg = {}; edges.forEach(e => { deg[e.source] = (deg[e.source]||0)+1; deg[e.target] = (deg[e.target]||0)+1; });
+  const orgs = [...new Set(nodes.map(n => n.org))].sort((a,b) =>
+    nodes.filter(n=>n.org===b).length - nodes.filter(n=>n.org===a).length);
+  orgs.forEach(o => document.getElementById('org').add(new Option(o, o)));
+
+  const ROW = 26, COLW = 210, GUT = 70;
+  let bandX = 0; const orgBands = {};
+  orgs.forEach(o => {
+    const members = nodes.filter(n => n.org === o).sort((a,b) => (deg[b.id]||0) - (deg[a.id]||0));
+    const cols = Math.max(1, Math.ceil(Math.sqrt(members.length / 24)));
+    members.forEach((n, i) => {
+      n.x = bandX + (i % cols) * COLW;
+      n.y = 60 + Math.floor(i / cols) * ROW;
+    });
+    orgBands[o] = { x: bandX, w: cols * COLW };
+    bandX += cols * COLW + GUT;
+  });
+
+  let scale = .9, ox = 20, oy = 20, selected = null;
+  function visible(n){
+    const of = document.getElementById('org').value;
+    if (of && n.org !== of) return false;
+    return true;
+  }
+  function edgeVisible(e){
+    if (!visible(byId[e.source]) || !visible(byId[e.target])) return false;
+    if (document.getElementById('viol').checked && e.status !== 'violation' && e.status !== 'new-violation') return false;
+    if (selected && e.source !== selected && e.target !== selected) return false;
+    return true;
+  }
+  function edgeColor(e){
+    if (e.status === 'new-violation') return C.newbad;
+    if (e.status === 'violation') return C.bad;
+    if (e.status === 'conforming') return C.conf;
+    return C.edge;
+  }
+  function draw(){
+    const w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio || 1;
+    if (cv.width !== w*dpr) { cv.width = w*dpr; cv.height = h*dpr; }
+    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+    ctx.translate(ox, oy); ctx.scale(scale, scale);
+    const needle = document.getElementById('q').value.toLowerCase();
+
+    ctx.font = '12px system-ui'; ctx.fillStyle = C.org;
+    orgs.forEach(o => { if (!document.getElementById('org').value || document.getElementById('org').value === o) ctx.fillText(o, orgBands[o].x, 40); });
+
+    ctx.lineWidth = 1 / scale < 1 ? 1 : 1;
+    edges.forEach(e => {
+      if (!edgeVisible(e)) return;
+      const a = byId[e.source], b = byId[e.target];
+      ctx.strokeStyle = edgeColor(e);
+      ctx.lineWidth = e.status === 'new-violation' ? 2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      const mx = (a.x + b.x) / 2;
+      ctx.bezierCurveTo(mx, a.y, mx, b.y, b.x, b.y);
+      ctx.stroke();
+    });
+
+    nodes.forEach(n => {
+      if (!visible(n)) return;
+      const hit = needle && n.label.toLowerCase().includes(needle);
+      const dimmed = (needle && !hit) || (selected && n.id !== selected && !edges.some(e => edgeVisible(e) && (e.source === n.id || e.target === n.id)));
+      ctx.fillStyle = dimmed ? C.dim : (n.status === 'foundation' ? C.foundation : C.node);
+      const r = Math.min(9, 3 + Math.sqrt(deg[n.id] || 0));
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 7); ctx.fill();
+      if (hit || selected === n.id || scale > 1.6) {
+        ctx.fillStyle = dimmed ? C.dim : C.label;
+        ctx.fillText(n.label.split('/').pop(), n.x + r + 3, n.y + 4);
+      }
+    });
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  function pick(mx, my){
+    const x = (mx - ox) / scale, y = (my - oy) / scale;
+    return nodes.find(n => visible(n) && (n.x-x)**2 + (n.y-y)**2 < 90);
+  }
+  let dragging = false, moved = false, lx = 0, ly = 0;
+  cv.onpointerdown = e => { dragging = true; moved = false; lx = e.offsetX; ly = e.offsetY; cv.setPointerCapture(e.pointerId); };
+  cv.onpointermove = e => {
+    if (dragging) { ox += e.offsetX - lx; oy += e.offsetY - ly; lx = e.offsetX; ly = e.offsetY; moved = true; draw(); return; }
+    const n = pick(e.offsetX, e.offsetY);
+    cv.style.cursor = n ? 'pointer' : 'grab';
+    cv.title = n ? n.label : '';
+  };
+  cv.onpointerup = e => {
+    dragging = false;
+    if (moved) return;
+    const n = pick(e.offsetX, e.offsetY);
+    selected = n ? n.id : null;
+    if (n) {
+      const ins = edges.filter(x => x.target === n.id).length, outs = edges.filter(x => x.source === n.id).length;
+      panel.innerHTML = `<h3>${esc(n.label)}</h3>
+        <div>${n.tier ? `<span class="badge tier">${esc(n.tier)}</span> ` : ''}${esc(n.status)}</div>
+        <div class="ev">fan-in ${ins} · fan-out ${outs}${n.violations ? ` · ${n.violations} violation(s) as source` : ''}</div>`;
+      panel.style.display = 'block';
+    } else { panel.style.display = 'none'; }
+    draw();
+  };
+  cv.onwheel = e => {
+    e.preventDefault();
+    const f = e.deltaY < 0 ? 1.15 : 1/1.15;
+    ox = e.offsetX - (e.offsetX - ox) * f; oy = e.offsetY - (e.offsetY - oy) * f;
+    scale *= f; draw();
+  };
+  ['org','viol','q'].forEach(id => document.getElementById(id).oninput = () => { selected = null; panel.style.display = 'none'; draw(); });
+  new ResizeObserver(draw).observe(cv);
+  draw();
+})();
+</script>
+{{template "foot" .}}{{end}}

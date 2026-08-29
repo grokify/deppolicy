@@ -1,0 +1,41 @@
+{{define "findings"}}{{template "head" .}}
+<div class="controls">
+  <select id="status">
+    <option value="">all statuses</option>
+    <option value="new">new violations</option>
+    <option value="violation">violations (all)</option>
+    <option value="conforming">conforming</option>
+    <option value="unused_allowance">unused allowances</option>
+  </select>
+  <input id="q" type="search" placeholder="filter source/target/reason…" size="34">
+  <span class="count" id="count"></span>
+</div>
+<table><thead><tr><th>Source</th><th>Target</th><th>Status</th><th>Reason / evidence</th></tr></thead><tbody id="rows"></tbody></table>
+<script>const DATA = {{.JSON}};</script>
+<script>
+(function(){
+  const esc = t => { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; };
+  const statusSel = document.getElementById('status'), q = document.getElementById('q');
+  function badge(f){
+    if (f.status === 'violation' && f.ratchet === 'new') return '<span class="badge new">new violation</span>';
+    return `<span class="badge ${esc(f.status)}">${esc(f.status.replace('_',' '))}${f.ratchet === 'existing' ? ' (baselined)' : ''}</span>`;
+  }
+  function render(){
+    const sv = statusSel.value, needle = q.value.toLowerCase();
+    const rows = DATA.findings.filter(f => {
+      if (sv === 'new' && !(f.status === 'violation' && f.ratchet === 'new')) return false;
+      if (sv && sv !== 'new' && f.status !== sv) return false;
+      if (needle && !(f.source + ' ' + f.target + ' ' + f.reason).toLowerCase().includes(needle)) return false;
+      return true;
+    });
+    document.getElementById('rows').innerHTML = rows.map(f => {
+      const ev = f.evidenceFile ? `<div class="ev">${esc(f.evidenceFile)}:${f.evidenceLine}</div>` : '';
+      return `<tr><td><code>${esc(f.source)}</code></td><td><code>${esc(f.target)}</code></td><td>${badge(f)}</td><td>${esc(f.reason)}${ev}</td></tr>`;
+    }).join('');
+    document.getElementById('count').textContent = rows.length + ' of ' + DATA.findings.length;
+  }
+  statusSel.onchange = render; q.oninput = render;
+  render();
+})();
+</script>
+{{template "foot" .}}{{end}}

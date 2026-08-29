@@ -1,0 +1,18 @@
+{{define "tiers"}}{{template "head" .}}
+<p class="ev">Tier rules are explicit and non-transitive: a chain never composes, same-tier peers always need explicit wiring, and a deny overrides every allow (escape valve: an unexpired exception). Foundation status is orthogonal — see the Summary page.</p>
+<div id="tiers"></div>
+<script>const DATA = {{.JSON}};</script>
+<script>
+(function(){
+  const esc = t => { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; };
+  document.getElementById('tiers').innerHTML = DATA.tiers.map(t => {
+    const allows = (t.mayDependOn || []).map(x => `<span class="badge conforming">→ ${esc(x)}</span>`).join(' ') || '<span class="ev">no auto-allow rules</span>';
+    const denies = (t.mayNotDependOn || []).map(x => `<span class="badge violation">✕ ${esc(x)}</span>`).join(' ');
+    const members = (t.members || []).map(m => `<code>${esc(m)}</code>`).join('<br>') || '<span class="ev">no declared members yet</span>';
+    return `<h2><span class="badge tier">${esc(t.name)}</span> <span class="ev">${(t.members||[]).length} member(s)</span></h2>
+      <div style="margin:.3rem 0 .5rem">${allows}${denies ? '<br>' + denies : ''}</div>
+      <div style="margin-bottom:1rem">${members}</div>`;
+  }).join('');
+})();
+</script>
+{{template "foot" .}}{{end}}

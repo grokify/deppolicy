@@ -1,0 +1,30 @@
+{{define "index"}}{{template "head" .}}
+<div class="tiles" id="tiles"></div>
+<div class="cols">
+  <section><h2>Components by org</h2><table id="orgs"><thead><tr><th>Org</th><th>Components</th></tr></thead><tbody></tbody></table></section>
+  <section><h2>Foundation (everyone may consume)</h2><table id="foundation"><thead><tr><th>Component</th></tr></thead><tbody></tbody></table></section>
+  <section><h2>Tiers</h2><table id="tiersum"><thead><tr><th>Tier</th><th>Members</th></tr></thead><tbody></tbody></table></section>
+</div>
+<script>const DATA = {{.JSON}};</script>
+<script>
+(function(){
+  const s = DATA.summary, esc = t => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+  const tiles = [
+    ['Components', s.components, ''],
+    ['In-scope edges', s.inScopeEdges, ''],
+    ['Conforming', s.conforming, 'ok'],
+    ['Violations (baselined debt)', s.violations - s.newViolations, 'bad'],
+    ['New violations', s.newViolations, s.newViolations ? 'newbad' : 'ok'],
+    ['Unused allowances', s.unusedAllowance, ''],
+  ];
+  document.getElementById('tiles').innerHTML = tiles.map(([l,n,c]) =>
+    `<div class="tile ${c}"><div class="n">${n}</div><div class="l">${esc(l)}</div></div>`).join('');
+  document.querySelector('#orgs tbody').innerHTML = Object.entries(s.orgs).sort((a,b)=>b[1]-a[1])
+    .map(([o,n]) => `<tr><td><code>${esc(o)}</code></td><td>${n}</td></tr>`).join('');
+  document.querySelector('#foundation tbody').innerHTML = s.foundation
+    .map(f => `<tr><td><code>${esc(f)}</code></td></tr>`).join('') || '<tr><td class="ev">none declared</td></tr>';
+  document.querySelector('#tiersum tbody').innerHTML = DATA.tiers
+    .map(t => `<tr><td><span class="badge tier">${esc(t.name)}</span></td><td>${t.members.length}</td></tr>`).join('');
+})();
+</script>
+{{template "foot" .}}{{end}}

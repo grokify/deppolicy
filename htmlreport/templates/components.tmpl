@@ -1,0 +1,50 @@
+{{define "components"}}{{template "head" .}}
+<div class="controls">
+  <select id="org"><option value="">all orgs</option></select>
+  <select id="tier"><option value="">all tiers</option><option value="(none)">untiered</option></select>
+  <select id="status"><option value="">all statuses</option></select>
+  <input id="q" type="search" placeholder="filter locator…" size="30">
+  <button class="sort on" id="s-fanin">fan-in ↓</button>
+  <button class="sort" id="s-fanout">fan-out ↓</button>
+  <button class="sort" id="s-name">name</button>
+  <span class="count" id="count"></span>
+</div>
+<table><thead><tr><th>Component</th><th>Org</th><th>Status</th><th>Tier</th><th>Fan-in</th><th>Fan-out</th><th>Flags</th></tr></thead><tbody id="rows"></tbody></table>
+<script>const DATA = {{.JSON}};</script>
+<script>
+(function(){
+  const esc = t => { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; };
+  const sel = id => document.getElementById(id);
+  const uniq = key => [...new Set(DATA.components.map(c => c[key]).filter(Boolean))].sort();
+  uniq('org').forEach(o => sel('org').add(new Option(o, o)));
+  uniq('tier').forEach(t => sel('tier').add(new Option(t, t)));
+  uniq('status').forEach(s => sel('status').add(new Option(s, s)));
+  let sortKey = 'fanIn';
+  function render(){
+    const o = sel('org').value, t = sel('tier').value, s = sel('status').value, needle = sel('q').value.toLowerCase();
+    let rows = DATA.components.filter(c =>
+      (!o || c.org === o) &&
+      (!t || (t === '(none)' ? !c.tier : c.tier === t)) &&
+      (!s || c.status === s) &&
+      (!needle || c.locator.toLowerCase().includes(needle)));
+    rows = rows.slice().sort((a,b) => sortKey === 'locator' ? a.locator.localeCompare(b.locator) : b[sortKey] - a[sortKey]);
+    sel('rows').innerHTML = rows.map(c => {
+      const flags = [c.declared ? 'declared' : '', c.observed ? '' : 'not observed'].filter(Boolean).join(', ');
+      const tier = c.tier ? `<span class="badge tier">${esc(c.tier)}</span>` : '';
+      const st = c.status === 'governed' ? esc(c.status) : `<strong>${esc(c.status)}</strong>`;
+      return `<tr><td><code>${esc(c.locator)}</code></td><td>${esc(c.org)}</td><td>${st}</td><td>${tier}</td><td>${c.fanIn}</td><td>${c.fanOut}</td><td class="ev">${esc(flags)}</td></tr>`;
+    }).join('');
+    sel('count').textContent = rows.length + ' of ' + DATA.components.length;
+  }
+  const sorts = {'s-fanin':'fanIn','s-fanout':'fanOut','s-name':'locator'};
+  Object.entries(sorts).forEach(([id,key]) => sel(id).onclick = () => {
+    sortKey = key;
+    Object.keys(sorts).forEach(i => sel(i).classList.toggle('on', i === id));
+    render();
+  });
+  ['org','tier','status'].forEach(id => sel(id).onchange = render);
+  sel('q').oninput = render;
+  render();
+})();
+</script>
+{{template "foot" .}}{{end}}
