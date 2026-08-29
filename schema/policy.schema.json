@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/grokify/deppolicy/policy/policy",
+  "$defs": {
+    "ComponentDeclaration": {
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tier": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Exception": {
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "effect": {
+          "type": "string"
+        },
+        "expires": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "source",
+        "target",
+        "effect",
+        "expires",
+        "reason"
+      ]
+    },
+    "Relationship": {
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "source",
+        "relation",
+        "target",
+        "reason"
+      ]
+    },
+    "Scope": {
+      "properties": {
+        "include": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "exclude": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "include"
+      ]
+    },
+    "TierRule": {
+      "properties": {
+        "mayDependOn": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "mayNotDependOn": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "type": "string"
+    },
+    "policyVersion": {
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/Scope"
+    },
+    "components": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ComponentDeclaration"
+      },
+      "type": "object"
+    },
+    "tiers": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TierRule"
+      },
+      "type": "object"
+    },
+    "relationships": {
+      "items": {
+        "$ref": "#/$defs/Relationship"
+      },
+      "type": "array"
+    },
+    "exceptions": {
+      "items": {
+        "$ref": "#/$defs/Exception"
+      },
+      "type": "array"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "scope"
+  ]
+}

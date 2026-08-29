@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/grokify/deppolicy/graph/graph",
+  "$defs": {
+    "ComponentObservation": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "id"
+      ]
+    },
+    "Dependency": {
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "relation": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "source",
+        "relation",
+        "target"
+      ]
+    },
+    "Evidence": {
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind"
+      ]
+    },
+    "ScanMetadata": {
+      "properties": {
+        "level": {
+          "type": "string"
+        },
+        "scanner": {
+          "type": "string"
+        },
+        "coverage": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "excluded": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "level",
+        "scanner"
+      ]
+    }
+  },
+  "properties": {
+    "generated": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scan": {
+      "$ref": "#/$defs/ScanMetadata"
+    },
+    "components": {
+      "items": {
+        "$ref": "#/$defs/ComponentObservation"
+      },
+      "type": "array"
+    },
+    "dependencies": {
+      "items": {
+        "$ref": "#/$defs/Dependency"
+      },
+      "type": "array"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "generated",
+    "scan"
+  ]
+}
