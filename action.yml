@@ -1,0 +1,72 @@
+name: 'DepPolicy Check'
+description: >-
+  Enforce a central dependency policy on a Go repository: fail the PR on
+  policy violations (check mode) or only on newly introduced violations
+  relative to a baseline graph (diff mode, the ratchet).
+author: 'grokify'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  mode:
+    description: >-
+      "check" evaluates the working tree against the policy and fails on
+      any violation. "diff" compares against a baseline graph.json and
+      fails only on newly introduced violations, warning on pre-existing
+      debt -- the mode to use before an ecosystem is fully classified.
+    required: false
+    default: 'check'
+  policy:
+    description: 'Path to policy.json.'
+    required: true
+  path:
+    description: 'Directory to scan.'
+    required: false
+    default: '.'
+  baseline:
+    description: 'Path to a baseline graph.json (required when mode is "diff").'
+    required: false
+    default: ''
+  output:
+    description: 'Optional path to write findings JSON to (e.g. for upload as an artifact).'
+    required: false
+    default: ''
+  version:
+    description: 'deppolicy version to install (a module version like v0.1.0, or "latest").'
+    required: false
+    default: 'latest'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install deppolicy
+      shell: bash
+      run: go install "github.com/grokify/deppolicy/cmd/deppolicy@${{ inputs.version }}"
+
+    - name: Run deppolicy
+      shell: bash
+      run: |
+        set -euo pipefail
+        MODE="${{ inputs.mode }}"
+        ARGS=(--policy "${{ inputs.policy }}")
+        if [ -n "${{ inputs.output }}" ]; then
+          ARGS+=(--output "${{ inputs.output }}")
+        fi
+        case "$MODE" in
+          check)
+            deppolicy check "${ARGS[@]}" "${{ inputs.path }}"
+            ;;
+          diff)
+            if [ -z "${{ inputs.baseline }}" ]; then
+              echo "::error::mode 'diff' requires the 'baseline' input" >&2
+              exit 1
+            fi
+            deppolicy diff "${ARGS[@]}" --baseline "${{ inputs.baseline }}" "${{ inputs.path }}"
+            ;;
+          *)
+            echo "::error::unknown mode '$MODE' (want 'check' or 'diff')" >&2
+            exit 1
+            ;;
+        esac
