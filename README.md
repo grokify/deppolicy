@@ -1,12 +1,14 @@
 # DepPolicy
 
-A statically analyzable dependency policy engine for Go module ecosystems: which modules may directly depend on which others, enforced as a default-deny policy against your source code.
+A statically analyzable dependency-policy engine: which **components** may directly depend on which others, enforced as a default-deny policy against what your code actually does. Think "OpenFGA for code dependencies" — a relationship-based authorization model (`source can_depend_on target`), deliberately constrained so every check is a deterministic, local, O(1)-style lookup: no policy interpreter, no network, no service.
 
-> **Status:** early development. Interfaces and the policy schema may still change.
+The policy model is **ecosystem-neutral**: a component may be a Go module, a directory within one (a proto-module), an npm package, a Rust crate, a container image, or a microservice — anything addressable by a locator. Scanners discover facts per ecosystem; one shared evaluator decides. **Go is the first and reference scanner**; other ecosystems extend the same graph contract without touching policy semantics.
+
+> **Status:** early development. Interfaces and the policy schema may still change. Implemented scanners today: Go (`go.mod` manifests, source imports, and GitHub-API fleet scans).
 
 ## Why
 
-As a Go module ecosystem grows across multiple repositories, architectural intent — which modules may depend on which others, and in which direction — tends to live only in ADRs and people's heads. DepPolicy makes that intent executable: an authored `policy.json` declares allowed direct dependencies, a scanner produces a `graph.json` of what actually exists, and a pure evaluator reports where reality diverges from intent.
+As an ecosystem grows across many repositories, architectural intent — which components may depend on which others, and in which direction — tends to live only in ADRs and people's heads, while adding an import stays cheap (especially with AI-assisted development). DepPolicy makes that intent executable: an authored `policy.json` declares allowed direct dependencies, a scanner produces a `graph.json` of what actually exists, and a pure evaluator reports where reality diverges from intent.
 
 See [`SPEC.md`](SPEC.md) for the full normative model.
 
@@ -97,9 +99,15 @@ graph.json      generated reality    what DOES exist (from scanning)
 findings        evaluate(policy, graph)
 ```
 
-The governed unit is a **component** (a Go module, or a proto-module: a directory within a module declared as its own finer-grained component). Within the governed ecosystem, a direct dependency is denied by default unless it's explicitly authorized, targets a `foundation`-status component, or is covered by a time-bounded exception. Transitive dependencies are not independently governed — DepPolicy governs direct boundary crossings, not reachability.
+The governed unit is a **component** — declared by policy, not implied by packaging. Its `kind` (go-module, go-package, npm-package, crate, container-image, service, …) is metadata only: policy semantics never branch on it, which is what keeps the model portable across ecosystems. Within the governed scope, a direct dependency is denied by default unless it's explicitly authorized, targets a `foundation`-status component, is allowed by a tier rule, or is covered by a time-bounded exception. Transitive dependencies are not independently governed — DepPolicy governs direct boundary crossings, not reachability.
+
+Components can also be organized into **tiers** (e.g. libraries → adapters → platform apps) with explicit, non-transitive `mayDependOn` allow-lists and `mayNotDependOn` deny patterns — the latter being the one rule that can reach third-party targets, for constraints like "an abstraction core must not import provider SDKs."
 
 Full semantics: [`SPEC.md`](SPEC.md).
+
+## Extending beyond Go
+
+Scanners and policy are strictly separated: a scanner only emits normalized `depends_on` edges with evidence into the shared graph contract, and never makes authorization decisions. Adding an ecosystem (npm, Cargo, PyPI, Maven, …) means writing a scanner that maps that ecosystem's manifests/imports to component locators — the evaluator, tier system, CLI, and report tooling work unchanged. The same shape extends past source code: microservice call graphs or container-image dependencies become components and edges under other locator schemes, with typed relations (e.g. `can_call`) reserved in the model for exactly that.
 
 ## Package layout
 
@@ -108,7 +116,7 @@ Full semantics: [`SPEC.md`](SPEC.md).
 | `component` | The ecosystem-neutral governed unit (ID/Kind/Locator/Status) and longest-prefix locator resolution |
 | `policy` | Policy document types, parsing/validation, and the pure evaluator (`Evaluate`, `EvaluateWithStatus`) |
 | `graph` | Generated dependency graph document types and JSON I/O |
-| `scanner/golang` | Go manifest (`go.mod`) and source-import scanners, concurrent multi-module scanning, and the `Scan` pipeline |
+| `scanner/golang` | Go scanners (reference implementation): `go.mod` manifests, source imports, concurrent multi-module scanning, GitHub-API fleet mode |
 | `schema` | JSON Schema generated from the `policy` and `graph` Go types (`go generate ./schema/...`) |
 | `cli` | Reusable CLI orchestration (loading policy, scanning, evaluating, formatting reports) |
 | `cmd/deppolicy` | The Cobra-based CLI binary — a thin adapter over `cli` |
