@@ -1,0 +1,93 @@
+{
+  "irVersion": "1.0",
+  "project": "deppolicy",
+  "repository": "https://github.com/grokify/deppolicy",
+  "versioning": "semver",
+  "commitConvention": "conventional",
+  "maintainers": [
+    "grokify",
+    "johncwang@gmail.com"
+  ],
+  "releases": [
+    {
+      "version": "v0.1.0",
+      "date": "2026-08-29",
+      "commit": "1a55648",
+      "highlights": [
+        {
+          "description": "Default-deny dependency policy engine: an authored policy.json declares which components may directly depend on which others, a scanner produces a graph.json of what actually exists, and a pure evaluator reports where reality diverges from intent — with a ratchet mode so enforcement starts before historical coupling is fully classified"
+        },
+        {
+          "description": "Ecosystem-neutral component model: Go modules, directories within them (proto-modules), npm packages, crates, container images, and services are all locatable components; Go ships as the first and reference scanner",
+          "commit": "f78efee"
+        },
+        {
+          "description": "Tier system with explicit, non-transitive allow-lists plus deny patterns that can reach third-party targets (e.g. \"an abstraction core must not import provider SDKs\"), layered over per-component foundation status",
+          "commit": "1d6c787"
+        },
+        {
+          "description": "Full enforcement surface: eleven CLI commands, a go/analysis analyzer reporting violations at the offending import line, a composite GitHub Action, and a self-contained multi-page HTML report",
+          "commit": "34e9923"
+        }
+      ],
+      "added": [
+        {
+          "description": "Component model with longest-prefix locator resolution and status semantics (governed, foundation, deprecated, ungoverned)",
+          "commit": "f78efee"
+        },
+        {
+          "description": "Dependency graph document types with evidence provenance (source-import, manifest), scan-level metadata, edge merging, and graph-to-graph diffing",
+          "commit": "a73df5f"
+        },
+        {
+          "description": "Policy document types and pure evaluator: scope patterns, reason-required relationships, expirable exceptions, tier rules with mayDependOn/mayNotDependOn, four-state findings",
+          "commit": "1d6c787"
+        },
+        {
+          "description": "JSON Schemas generated from the policy and graph Go types, embedded for non-Go consumers",
+          "commit": "882767b"
+        },
+        {
+          "description": "Go scanners: go.mod manifests, ImportsOnly source imports, bounded-concurrency multi-root scanning with a shared component registry, and GitHub-API fleet scanning with no cloning",
+          "commit": "1629228"
+        },
+        {
+          "description": "Analytics tables (Policy/Actual/Difference as flat JSON/CSV) and a self-contained multi-page HTML report with an interactive org-grouped dependency graph",
+          "commit": "746cc2a"
+        },
+        {
+          "description": "deppolicy CLI: scan, scan-github, check, diff (ratchet), policy-diff, validate, promote, report, export (Mermaid/DOT), tables, and ui",
+          "commit": "34e9923"
+        },
+        {
+          "description": "go/analysis analyzer and deppolicy-vet binary for standalone and go vet -vettool use",
+          "commit": "1ee41b5"
+        }
+      ],
+      "documentation": [
+        {
+          "description": "README, normative SPEC.md, repo CLAUDE.md, and MIT license",
+          "commit": "c9cc192"
+        },
+        {
+          "description": "README repositioned as ecosystem-neutral with Go as the reference scanner, plus an Extending Beyond Go section",
+          "commit": "2c79cb2"
+        },
+        {
+          "description": "MkDocs documentation site: concepts, guides, and reference across twelve pages",
+          "commit": "b4db5ab"
+        }
+      ],
+      "dependencies": [
+        {
+          "description": "golang.org/x/mod and x/tools, spf13/cobra, invopop/jsonschema, santhosh-tekuri/jsonschema/v6, grokify/gogithub"
+        }
+      ],
+      "tests": [
+        {
+          "description": "Real-fixture test suite throughout: temp-dir modules driven through the real parsers, in-process Cobra command execution, and analysistest coverage for the analyzer"
+        }
+      ]
+    }
+  ]
+}

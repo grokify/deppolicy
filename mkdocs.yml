@@ -56,6 +56,9 @@ nav:
       - Commands: reference/commands.md
       - Extending Beyond Go: reference/extending.md
       - Specification: https://github.com/grokify/deppolicy/blob/main/SPEC.md
+  - Release Notes:
+      - v0.1.0: releases/v0.1.0.md
+  - Changelog: https://github.com/grokify/deppolicy/blob/main/CHANGELOG.md
 
 extra:
   social:
