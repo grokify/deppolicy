@@ -1,0 +1,31 @@
+name: Docs
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yaml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+    - name: Configure Git credentials
+      run: |
+        git config user.name github-actions[bot]
+        git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+    - name: Setup Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.x'
+    - name: Install MkDocs and dependencies
+      run: |
+        pip install mkdocs-material pymdown-extensions
+    - name: Build and deploy
+      run: mkdocs gh-deploy --force
