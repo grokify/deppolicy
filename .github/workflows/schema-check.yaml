@@ -1,0 +1,34 @@
+name: Schema Check
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'policy/**.go'
+      - 'graph/**.go'
+      - 'schema/**'
+      - '.github/workflows/schema-check.yaml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'policy/**.go'
+      - 'graph/**.go'
+      - 'schema/**'
+      - '.github/workflows/schema-check.yaml'
+  workflow_dispatch:
+
+jobs:
+  schemas-up-to-date:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 'stable'
+      - name: Regenerate schemas
+        run: cd schema && go run gen/main.go
+      - name: Fail if generated schemas differ from committed
+        run: git diff --exit-code schema/
