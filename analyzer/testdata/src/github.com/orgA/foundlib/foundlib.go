@@ -1,0 +1,3 @@
+package foundlib
+
+func Do() {}

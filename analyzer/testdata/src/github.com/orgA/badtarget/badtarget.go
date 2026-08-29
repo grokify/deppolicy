@@ -1,0 +1,3 @@
+package badtarget
+
+func Do() {}

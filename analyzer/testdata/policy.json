@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1",
+  "scope": { "include": ["go:github.com/orgA/*"] },
+  "components": {
+    "go:github.com/orgA/foundlib": { "status": "foundation" }
+  },
+  "relationships": [
+    {
+      "source": "go:github.com/orgA/consumer",
+      "relation": "can_depend_on",
+      "target": "go:github.com/orgA/provider",
+      "reason": "test fixture"
+    }
+  ]
+}
