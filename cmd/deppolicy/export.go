@@ -54,7 +54,7 @@ the graph is rendered unstyled.`,
 			}
 
 			if output != "" {
-				return os.WriteFile(output, []byte(rendered), 0o600)
+				return os.WriteFile(output, []byte(rendered), 0o600) //nolint:gosec // G703: output path comes from the user's own CLI flag
 			}
 			_, err = fmt.Fprint(cmd.OutOrStdout(), rendered)
 			return err

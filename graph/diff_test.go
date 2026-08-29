@@ -43,7 +43,7 @@ func TestDiffGraphs_IdenticalGraphs(t *testing.T) {
 }
 
 func TestDiffGraphs_EmptyBaseline(t *testing.T) {
-	current := Graph{Dependencies: []Dependency{dep("a", "b")}}
+	current := Graph{Dependencies: []Dependency{dep("x", "y")}}
 	d := DiffGraphs(Graph{}, current)
 
 	if len(d.Added) != 1 {
@@ -55,7 +55,7 @@ func TestDiffGraphs_EmptyBaseline(t *testing.T) {
 }
 
 func TestDiffGraphs_EmptyCurrent(t *testing.T) {
-	baseline := Graph{Dependencies: []Dependency{dep("a", "b")}}
+	baseline := Graph{Dependencies: []Dependency{dep("x", "y")}}
 	d := DiffGraphs(baseline, Graph{})
 
 	if len(d.Removed) != 1 {
