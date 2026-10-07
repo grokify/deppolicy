@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Repo-specific guidance for `github.com/grokify/deppolicy`. Org-wide conventions (error handling, commit style, dependency verification, JSON Schema workflow) come from `~/go/src/github.com/grokify/.github/CLAUDE.md` — this file only covers what's specific to this codebase.
+Repo-specific guidance for `github.com/grokify/deppolicy`. Org-wide conventions (error handling, commit style, dependency verification, JSON Schema workflow) come from `~/go/src/github.com/grokify/.github/AGENTS.md` — this file only covers what's specific to this codebase.
 
 ## Read SPEC.md first
 
